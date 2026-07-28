@@ -18,11 +18,9 @@ input.addEventListener('change', async () => {
 
     saida.textContent = 'Lendo...'
     try {
-        // A ponte navegador → core: extrai os bytes crus do arquivo.
         const dados = await file.arrayBuffer()
         const doc = await lerDocumento(file.name, dados)
 
-        // Monta um resumo legível (o texto completo pode ser enorme).
         const resumo = {
             nome: doc.nome,
             formato: doc.formato,
