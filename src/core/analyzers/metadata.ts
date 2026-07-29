@@ -26,7 +26,7 @@ export async function analisarMetadados(doc: Documento): Promise<Flag[]> {
     const modificado = data(m.modified)
     const editor = typeof m.Application === 'string' ? m.Application : undefined
 
-    // Regras 1 e 2 — tempo de edição curto para o volume de texto (exclusivas).
+    // Regras 1 e 2 — tempo de edição curto para o volume de texto.
     if (palavras !== undefined && tempo !== undefined) {
         if (tempo < L.tempoEdicaoMuitoCurtoMin && palavras >= L.palavrasTempoMuitoCurto) {
             flags.push({
