@@ -69,9 +69,15 @@ function textoDe(valor: unknown): string | undefined {
 }
 
 function extrairTexto(documentXml: string): string {
-    const partes = [...documentXml.matchAll(/<w:t\b[^>]*>([\s\S]*?)<\/w:t>/g)].map((m) => m[1])
-    return partes
-        .join('')
+    return documentXml
+        .split('</w:p>')
+        .map((paragrafo) =>
+            [...paragrafo.matchAll(/<w:t\b[^>]*>([\s\S]*?)<\/w:t>/g)]
+                .map((m) => m[1])
+                .join(''),
+        )
+        .filter((linha) => linha.length > 0)
+        .join('\n')
         .replaceAll('&amp;', '&')
         .replaceAll('&lt;', '<')
         .replaceAll('&gt;', '>')

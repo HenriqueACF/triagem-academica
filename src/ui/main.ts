@@ -26,6 +26,9 @@ input.addEventListener('change', async () => {
     try {
         const dados = await file.arrayBuffer()
         const doc = await lerDocumento(file.name, dados)
+        console.log('TEXTO EXTRAÍDO:\n' + doc.texto.slice(0, 800))
+        console.log('FINAL DO TEXTO:\n' + doc.texto.slice(-2000))
+        console.log([...doc.texto.matchAll(/refer[êe]ncias?/gi)].map((m) => m.index + ' → ...' + doc.texto.slice(Math.max(0, m.index - 50), m.index + 70) + '...'))
         console.log('METADADOS:', doc.metadados)
 
         const flags = await analisarMetadados(doc)
