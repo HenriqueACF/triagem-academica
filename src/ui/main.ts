@@ -2,6 +2,7 @@ import { lerDocumento } from '../core/readers'
 import { analisarMetadados } from '../core/analyzers/metadata.ts'
 import { gerarRelatorioHtml } from '../core/report/html.ts'
 import { analisarReferencias, levantarReferencias } from '../core/analyzers/references.ts'
+import { analisarInventario } from '../core/analyzers/inventory.ts'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 
@@ -39,10 +40,18 @@ input.addEventListener('change', async () => {
         // console.log('TESTE com DOI falso:', await analisarReferencias({ ...doc, texto: 'Conforme 10.9999/naoexiste e também 10.1038/nature12373.' }))
 
         // const flags = await analisarMetadados(doc)
+
+        // const { extrairCitacoes } = await import('../core/analyzers/inventory.ts')
+        // const cits = extrairCitacoes(doc.texto)
+        // console.log('citações distintas:', cits.length, '| total de ocorrências:', cits.reduce((s, c) => s + c.ocorrencias, 0))
+        // console.log(cits)
+        // const { extrairListaReferencias } = await import('../core/analyzers/inventory.ts')
+        // console.log('lista de referências:', extrairListaReferencias(doc.texto))
         const referencias = await levantarReferencias(doc)
         const flags = [
             ...(await analisarMetadados(doc)),
-            ...(await analisarReferencias(doc))
+            ...(await analisarReferencias(doc)),
+            ...(await analisarInventario(doc))
         ]
         // console.log('inventário:', referencias)
         if (flags.length === 0) {
