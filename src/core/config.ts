@@ -1,6 +1,9 @@
 export const CONFIG = {
     crossrefBase: 'https://api.crossref.org',
     pubmedBase: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils',
+    dataciteBase: 'https://api.datacite.org',
+    openalexBase: 'https://api.openalex.org',
+    europepmcBase: 'https://www.ebi.ac.uk/europepmc/webservices/rest',
 
     mailto: 'hacfreitas@gmail.com',
 

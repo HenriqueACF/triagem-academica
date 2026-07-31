@@ -1,6 +1,7 @@
+import { CONFIG } from '../config.ts'
 import type { ResultadoConsulta } from './crossref.ts'
 export async function consultarDoiDataCite(doi: string): Promise<ResultadoConsulta> {
-    const url = `https://api.datacite.org/dois/${encodeURIComponent(doi)}`
+    const url = `${CONFIG.dataciteBase}/dois/${encodeURIComponent(doi)}`
 
     try {
         const res = await fetch(url)
