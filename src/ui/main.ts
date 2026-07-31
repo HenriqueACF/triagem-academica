@@ -1,6 +1,7 @@
 import { lerDocumento } from '../core/readers'
 import { analisarMetadados } from '../core/analyzers/metadata.ts'
 import { gerarRelatorioHtml } from '../core/report/html.ts'
+import { analisarReferencias, levantarReferencias } from '../core/analyzers/references.ts'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 
@@ -26,22 +27,33 @@ input.addEventListener('change', async () => {
     try {
         const dados = await file.arrayBuffer()
         const doc = await lerDocumento(file.name, dados)
-        console.log('TEXTO EXTRAÍDO:\n' + doc.texto.slice(0, 800))
-        console.log('FINAL DO TEXTO:\n' + doc.texto.slice(-2000))
-        console.log([...doc.texto.matchAll(/refer[êe]ncias?/gi)].map((m) => m.index + ' → ...' + doc.texto.slice(Math.max(0, m.index - 50), m.index + 70) + '...'))
-        console.log('METADADOS:', doc.metadados)
+        // console.log('TEXTO EXTRAÍDO:\n' + doc.texto.slice(0, 800))
+        // console.log('FINAL DO TEXTO:\n' + doc.texto.slice(-2000))
+        // console.log([...doc.texto.matchAll(/refer[êe]ncias?/gi)].map((m) => m.index + ' → ...' + doc.texto.slice(Math.max(0, m.index - 50), m.index + 70) + '...'))
+        // const { extrairIdentificadores } = await import('../core/analyzers/references.ts')
+        // console.log('IDs no documento real:', extrairIdentificadores(doc.texto))
+        // console.log('IDs num texto de teste:', extrairIdentificadores('Ver doi:10.1038/nature12373. Também PMID: 23845944 e de novo 10.1038/nature12373.'))
+        // console.log('METADADOS:', doc.metadados)
+        // const { analisarReferencias } = await import('../core/analyzers/references.ts')
+        // console.log('FLAGS de referências (doc real):', await analisarReferencias(doc))
+        // console.log('TESTE com DOI falso:', await analisarReferencias({ ...doc, texto: 'Conforme 10.9999/naoexiste e também 10.1038/nature12373.' }))
 
-        const flags = await analisarMetadados(doc)
-
+        // const flags = await analisarMetadados(doc)
+        const referencias = await levantarReferencias(doc)
+        const flags = [
+            ...(await analisarMetadados(doc)),
+            ...(await analisarReferencias(doc))
+        ]
+        // console.log('inventário:', referencias)
         if (flags.length === 0) {
-            saida.textContent = 'Nenhuma sinalização de metadados.'
+            saida.textContent = 'Nenhuma sinalização.'
         } else {
             saida.textContent = flags
                 .map((f) => `[${f.severidade}] ${f.titulo}\n    ${f.evidencia}`)
                 .join('\n\n')
         }
 
-        const html = gerarRelatorioHtml(doc, flags)
+        const html = gerarRelatorioHtml(doc, flags, referencias)
         const botao = document.createElement('button')
         botao.textContent = 'Baixar relatório .html'
         botao.addEventListener('click', () => baixar(html, file.name))

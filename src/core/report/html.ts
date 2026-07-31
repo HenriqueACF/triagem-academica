@@ -1,4 +1,4 @@
-import type { Documento, Flag, Severidade } from '../models.ts'
+import type { Documento, Flag, Severidade, Referencia } from '../models.ts'
 function escapar(texto: string): string {
     return texto
         .replaceAll('&', '&amp;')
@@ -24,13 +24,21 @@ const COR: Record<Severidade, string> = {
     INFO: '#2980b9',
 }
 
+const ROTULO_STATUS: Record<Referencia['status'], string> = {
+    valida: 'verificada',
+    nao_encontrada: 'NÃO ENCONTRADA',
+    divergente: 'divergente',
+    sem_identificador: 'sem identificador',
+    nao_verificada: 'não verificada',
+}
+
 const AVISO_LEGAL =
     'Este relatório não conclui autoria e não constitui prova de uso de IA. ' +
     'Cada sinalização deve ser verificada manualmente antes de qualquer decisão ' +
     'acadêmica. Recomenda-se conversa com o(a) discente antes de qualquer ' +
     'procedimento formal.'
 
-export function gerarRelatorioHtml(doc: Documento, flags: Flag[]): string {
+export function gerarRelatorioHtml(doc: Documento, flags: Flag[], referencias: Referencia[] = []): string {
     const contagem: Record<Severidade, number> = { ALTA: 0, MEDIA: 0, BAIXA: 0, INFO: 0 }
     for (const f of flags) contagem[f.severidade]++
 
@@ -45,7 +53,7 @@ export function gerarRelatorioHtml(doc: Documento, flags: Flag[]): string {
     )
 
     const lista = flagsOrdenadas.length === 0
-        ? '<p class="vazio">Nenhuma sinalização de metadados.</p>'
+        ? '<p class="vazio">Nenhuma sinalização.</p>'
         : flagsOrdenadas.map((f) => `
         <div class="flag">
             <span class="tag" style="background:${COR[f.severidade]}">${ROTULO[f.severidade]}</span>
@@ -55,6 +63,20 @@ export function gerarRelatorioHtml(doc: Documento, flags: Flag[]): string {
                 ${f.detalhe ? `<div class="detalhe">${escapar(f.detalhe)}</div>` : ''}
             </div>
         </div>`).join('')
+
+    const inventario = referencias.length === 0
+        ? `<p class="vazio">Nenhum identificador (DOI/PMID) foi encontrado no documento.
+           Isso é comum em trabalhos que seguem ABNT autor-data e não constitui indício de nada.</p>`
+        : `<div class="tabela-wrap"><table>
+        <thead><tr><th>#</th><th>Identificador</th><th>Situação</th><th>Título retornado pela base</th><th>Ocorrências</th></tr></thead>
+        <tbody>${referencias.map((r) => `<tr>
+            <td>${r.indice}</td>
+            <td>${escapar(r.doi ?? r.pmid ?? '—')}</td>
+            <td>${ROTULO_STATUS[r.status]}</td>
+            <td>${escapar(r.tituloRetornado ?? '—')}</td>
+            <td>${r.ocorrenciasNoCorpo}</td>
+        </tr>`).join('')}</tbody>
+        </table></div>`
 
     const geradoEm = new Date().toLocaleString('pt-BR')
 
@@ -78,6 +100,11 @@ export function gerarRelatorioHtml(doc: Documento, flags: Flag[]): string {
     .detalhe { color: #777; font-size: 0.8rem; margin-top: 0.15rem; }
     .vazio { color: #666; font-style: italic; }
     .aviso { margin-top: 2rem; padding: 0.85rem 1rem; background: #f7f7f7; border-left: 4px solid #999; font-size: 0.8rem; color: #555; }
+   h2 { font-size: 1rem; margin-top: 2rem; margin-bottom: 0.3rem; }
+    .tabela-wrap { overflow-x: auto; }
+   table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+   th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid #eee; vertical-align: top; }
+   th { background: #f5f5f5; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -85,6 +112,8 @@ export function gerarRelatorioHtml(doc: Documento, flags: Flag[]): string {
     <div class="sub">${escapar(doc.nome)} · gerado em ${escapar(geradoEm)}</div>
     <div class="painel">${painel}</div>
     ${lista}
+        <h2>Inventário de referências</h2>
+    ${inventario}
     <div class="aviso">${AVISO_LEGAL}</div>
 </body>
 </html>`
