@@ -2,10 +2,8 @@ import { CONFIG } from '../config'
 import type { ResultadoConsulta} from "./crossref.ts";
 
 export async function consultarPmid(pmid:string): Promise<ResultadoConsulta> {
-    const url = `${CONFIG.pubmedBase}/esummary.fcgi?db=pubmed&
-    id=${encodeURIComponent(pmid)}&retmode=json&
-    email=${encodeURIComponent(CONFIG.mailto)}`
-
+    const url = `${CONFIG.pubmedBase}/esummary.fcgi?db=pubmed&id=${encodeURIComponent(pmid)}&retmode=json&email=${encodeURIComponent(CONFIG.mailto)}`
+    console.log('URL MONTADA: ', url)
     try {
         const res = await fetch(url)
 
@@ -17,6 +15,12 @@ export async function consultarPmid(pmid:string): Promise<ResultadoConsulta> {
 
         const json = await res.json()
         const registro = json?.result?.[pmid]
+
+        if (!registro) {
+            return {
+                status: 'nao_verificada'
+            }
+        }
 
         if (registro.error){
             return {
