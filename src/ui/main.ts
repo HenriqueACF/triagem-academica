@@ -26,6 +26,7 @@ input.addEventListener('change', async () => {
     try {
         const dados = await file.arrayBuffer()
         const doc = await lerDocumento(file.name, dados)
+        console.log('METADADOS:', doc.metadados)
 
         const flags = await analisarMetadados(doc)
 
