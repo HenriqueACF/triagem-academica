@@ -21,25 +21,71 @@ num relatório para que o(a) docente interprete.
 - **Sem backend, sem instalação.** É um site estático. A usuária final apenas acessa um link.
 - **Falha de rede nunca vira alarme.** Se uma API estiver fora do ar, o item vira apenas
   informativo — nunca uma sinalização de severidade alta.
+- **Nenhuma base decide sozinha.** Um identificador só é dado como inexistente depois que
+  *todas* as bases consultadas o negarem. Se uma delas não respondeu, o resultado é
+  "não verificada" — a base ausente poderia ser justamente a que o conhece.
+- **Ausência de sinalização não é atestado.** Zero flags significa que nenhuma verificação
+  encontrou o que procura, não que o trabalho está aprovado.
+
+## O que é analisado
+
+| Módulo | O que examina | Sinalizações |
+|---|---|---|
+| `metadata` | tempo de edição, revisões, datas, ciclos de edição, editor declarado | 6 |
+| `references` | DOIs e PMIDs citados, verificados em cinco bases | 2 |
+| `inventory` | citações autor-data e numéricas cruzadas com a lista de referências | 9 |
+| `artifacts` | caracteres invisíveis, aspas misturadas, espaçamento anômalo | 4 |
+
+A lista completa das 21 regras, com limiares e severidades, está em
+[`docs/guia-tecnico.md`](docs/guia-tecnico.md).
+
+## Bases consultadas
+
+| Base | Cobre | Usada para |
+|---|---|---|
+| CrossRef | periódicos científicos | DOI |
+| DataCite | teses, datasets, repositórios institucionais | DOI |
+| OpenAlex | agregadora, ~250M obras de todas as áreas | DOI |
+| PubMed | biomédica | PMID |
+| Europe PMC | biomédica ampliada (inclui preprints) | PMID |
+
+SciELO e LILACS — as bases mais relevantes para a produção médica brasileira em português —
+não expõem CORS e portanto são inalcançáveis a partir do navegador. Usá-las exigiria um
+servidor intermediário, o que contrariaria o princípio de não haver backend.
 
 ## Como funciona
 
-1. A pessoa seleciona a pasta com os trabalhos.
-2. Cada arquivo é lido e analisado dentro do próprio navegador.
-3. Para cada trabalho é gerado um relatório `.html` autocontido (abre com duplo clique).
-4. Um `.csv` consolidado do lote permite priorizar quais trabalhos abrir primeiro.
+1. A pessoa seleciona (ou arrasta) a pasta com os trabalhos. Subpastas são incluídas e
+   arquivos temporários do Word (`~$…`) são ignorados.
+2. Cada arquivo é lido e analisado dentro do próprio navegador, em sequência.
+3. A tela mostra a turma em uma tabela ordenada por gravidade, com contagem por severidade,
+   métricas de contexto e a distribuição do lote em histogramas.
+4. Cada trabalho tem um relatório `.html` autocontido (abre com duplo clique, offline).
+5. Um `.zip` reúne todos os relatórios mais um `.csv` consolidado do lote.
 
-O relatório traz um painel de contagem por severidade (ALTA / MÉDIA / BAIXA / INFO), a lista
-de sinalizações com a evidência de cada uma, o inventário completo de referências e um aviso
-legal obrigatório.
+> Ao escolher uma pasta, o navegador pode perguntar se você deseja *"enviar"* os arquivos.
+> É o texto padrão dele para conceder **leitura** — nenhum upload acontece.
+
+### O que o relatório de cada trabalho contém
+
+- Painel de contagem por severidade (ALTA / MÉDIA / BAIXA / INFO)
+- **Ficha do documento**: metadados crus e um resumo da edição em linguagem corrente
+- Linha do tempo entre criação e última modificação
+- Lista de sinalizações, cada uma com a evidência que a gerou
+- **Inventário de citações** do corpo, com forma (parentética ou narrativa), ocorrências,
+  trecho de contexto e situação frente à lista de referências
+- Faixa mostrando onde as citações se distribuem ao longo do texto
+- Lista de referências do trabalho, marcando quais são efetivamente citadas
+- Identificadores (DOI/PMID) verificados, com o título retornado pela base
+- Texto do trabalho com as citações destacadas e numeradas
+- Aviso legal obrigatório
 
 ## Requisitos
 
 - [Node.js](https://nodejs.org/) 20 ou superior (inclui o `npm`)
 - [Git](https://git-scm.com/)
-- Um navegador **Chromium** (Google Chrome ou Microsoft Edge) para a versão final — a seleção
-  de pasta usa a *File System Access API*, disponível nesses navegadores. Há um modo de
-  compatibilidade (download individual) para navegadores sem suporte.
+- Um navegador atual (Chrome, Edge ou Firefox). A seleção de pasta usa o atributo
+  `webkitdirectory`, suportado por todos eles.
 
 ## Rodando o projeto em outra máquina
 
@@ -61,9 +107,8 @@ navegador. O servidor recarrega a página automaticamente quando você salva um 
 ### Outros comandos
 
 ```bash
-npm run build      # gera a versão de produção (site estático) na pasta dist/
+npm run build      # verifica os tipos e gera o site estático em dist/
 npm run preview    # serve localmente a versão de produção, para conferência
-npm test           # roda os testes automatizados (Vitest)
 ```
 
 ## Stack
@@ -72,41 +117,48 @@ npm test           # roda os testes automatizados (Vitest)
 |---|---|
 | TypeScript | linguagem |
 | Vite | build e servidor de desenvolvimento |
-| jszip | abrir o `.docx` (que por dentro é um ZIP) |
+| jszip | abrir o `.docx` (que por dentro é um ZIP) e montar o `.zip` de saída |
 | fast-xml-parser | ler os XMLs internos do `.docx` |
 | pdfjs-dist | extrair texto e metadados de PDF (motor da Mozilla) |
-| Vitest | testes automatizados |
 
-Sem framework de UI (React/Vue) — a interface é uma página única e simples, então dependência
-extra seria peso morto.
+Sem framework de UI (React/Vue) e sem biblioteca de gráficos — a interface é uma página
+única e os visuais são SVG gerado como texto, o que mantém o relatório autocontido.
 
 ## Estrutura
 
 ```
 triagem-academica/
 ├── index.html
-├── vite.config.ts
 ├── package.json
-├── src/
-│   ├── core/                 # lógica pura — NÃO acessa DOM/window. Testável isolada.
-│   │   ├── models.ts         # tipos centrais (Documento, Flag, Referencia...)
-│   │   ├── config.ts         # limiares, URLs das APIs, e-mail de contato
-│   │   ├── readers/          # abre .docx e .pdf → Documento normalizado
-│   │   ├── analyzers/        # cada análise recebe um Documento e devolve Flag[]
-│   │   ├── services/         # chamadas a CrossRef/PubMed + cache
-│   │   └── report/           # geração do relatório .html e do .csv
-│   └── ui/                   # a página (única parte que toca o navegador)
-└── tests/
-    └── fixtures/             # arquivos de exemplo para os testes
+├── docs/
+│   └── guia-tecnico.md       # arquitetura, regras e decisões de projeto
+└── src/
+    ├── core/                 # lógica pura — NÃO acessa DOM/window
+    │   ├── models.ts         # tipos centrais (Documento, Flag, Inventario...)
+    │   ├── config.ts         # limiares, URLs das bases, e-mail de contato
+    │   ├── batch.ts          # orquestra a análise de um lote
+    │   ├── readers/          # abre .docx e .pdf → Documento normalizado
+    │   ├── analyzers/        # cada análise recebe um Documento e devolve Flag[]
+    │   ├── services/         # consultas às bases de referência + cache
+    │   └── report/           # relatório .html, visuais SVG, .csv e .zip
+    └── ui/                   # a página (única parte que toca o navegador)
 ```
 
-A separação `core/` (lógica pura) x `ui/` (navegador) é intencional: a lógica é testável de
+A separação `core/` (lógica pura) × `ui/` (navegador) é intencional: a lógica é testável de
 forma isolada e não depende do navegador.
 
-## Deploy
+## Estado atual
 
-O site é estático e pode ser publicado gratuitamente no **GitHub Pages** ou **Cloudflare Pages**,
-com deploy automático a cada `git push`.
+Implementado e verificado manualmente: leitura de `.docx` e `.pdf`, os quatro analisadores,
+as cinco bases encadeadas com cache, processamento em lote, relatório `.html`, planilha
+`.csv`, `.zip` do lote e as visualizações.
+
+Pendente:
+
+- **Testes automatizados.** O projeto ainda não tem nenhum.
+
+- **Calibração dos limiares.** Os valores em `config.ts` são provisórios; os histogramas da
+  tela de lote existem justamente para ajustá-los contra uma turma real.
 
 ## Aviso
 
