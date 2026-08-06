@@ -53,5 +53,14 @@ export async function lerPdf(nome: string, dados: ArrayBuffer): Promise<Document
     const texto = paginas.join('\n')
     metadados.Words = String(texto.split(/\s+/).filter((p) => p.length > 0).length)
 
+    const mediaPorPagina = texto.length / pdf.numPages
+    if (mediaPorPagina < 20) {
+        errosLeitura.push(
+            'Este PDF parece ser digitalizado (imagem) — quase nenhum texto pôde ser extraído. ' +
+            'As análises de citações e artefatos não têm o que examinar neste documento.'
+        )
+    }
+
+
     return { nome, formato: 'pdf', texto, metadados, errosLeitura }
 }
