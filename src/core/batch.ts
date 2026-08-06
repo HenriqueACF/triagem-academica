@@ -11,6 +11,8 @@ const INVENTARIO_VAZIO: Inventario = {
     ocorrencias: [],
 }
 import { analisarArtefatos } from './analyzers/artifacts.ts'
+import {analisarFontes} from "./analyzers/fonts.ts";
+import {analisarIdioma} from "./analyzers/language.ts";
 
 export function ehArquivoSuportado(nome: string): boolean {
     const base = nome.split('/').pop() ?? nome
@@ -77,6 +79,9 @@ export async function processarArquivo(nome: string, dados: ArrayBuffer): Promis
         ...(await rodarAnalisador('referencias', () => analisarReferencias(doc))),
         ...(await rodarAnalisador('inventario', () => analisarInventario(doc))),
         ...(await rodarAnalisador('artefatos', () => analisarArtefatos(doc))),
+        ...(await rodarAnalisador('fontes', () => analisarFontes(doc))),
+        ...(await rodarAnalisador('idioma', () => analisarIdioma(doc))),
+
     ]
 
     return { doc, flags, referencias, inventario }
