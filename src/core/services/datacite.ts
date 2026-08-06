@@ -16,9 +16,11 @@ export async function consultarDoiDataCite(doi: string): Promise<ResultadoConsul
 
         const json = await res.json()
         const titulo = json?.data?.attributes?.titles?.[0]?.title
+        const ano = json?.data?.attributes?.publicationYear
         return {
             status: 'valida',
             titulo: typeof titulo === 'string' ? titulo : undefined,
+            ano: typeof ano === 'number' ? ano : undefined,
         }
     } catch {
         return { status: 'nao_verificada' }

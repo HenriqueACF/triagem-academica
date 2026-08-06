@@ -3,6 +3,7 @@ import {CONFIG} from "../config.ts";
 export interface ResultadoConsulta{
     status: 'valida' | 'nao_encontrada' | 'nao_verificada'
     titulo?: string
+    ano?: number
 }
 
 export async function consultarDoi(doi: string): Promise<ResultadoConsulta>{
@@ -21,9 +22,11 @@ export async function consultarDoi(doi: string): Promise<ResultadoConsulta>{
 
         const json = await res.json()
         const titulo = json?.message?.title?.[0]
+        const ano = json?.message?.issued?.['date-parts']?.[0]?.[0]
         return {
             status: 'valida',
-            titulo: typeof titulo === 'string' ? titulo : undefined
+            titulo: typeof titulo === 'string' ? titulo : undefined,
+            ano: typeof ano === 'number' ? ano : undefined,
         }
 
     }catch {

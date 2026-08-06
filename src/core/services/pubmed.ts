@@ -3,7 +3,6 @@ import type { ResultadoConsulta} from "./crossref.ts";
 
 export async function consultarPmid(pmid:string): Promise<ResultadoConsulta> {
     const url = `${CONFIG.pubmedBase}/esummary.fcgi?db=pubmed&id=${encodeURIComponent(pmid)}&retmode=json&email=${encodeURIComponent(CONFIG.mailto)}`
-    console.log('URL MONTADA: ', url)
     try {
         const res = await fetch(url)
 
@@ -29,9 +28,11 @@ export async function consultarPmid(pmid:string): Promise<ResultadoConsulta> {
         }
 
         const titulo = registro.title
+        const anoMatch = typeof registro.pubdate === 'string' ? registro.pubdate.match(/\d{4}/) : null
         return {
             status: 'valida',
-            titulo: typeof titulo === 'string' ? titulo : undefined
+            titulo: typeof titulo === 'string' ? titulo : undefined,
+            ano: anoMatch ? Number(anoMatch[0]) : undefined,
         }
     } catch{
         return {

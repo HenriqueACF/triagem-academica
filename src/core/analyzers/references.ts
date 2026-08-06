@@ -47,6 +47,7 @@ export async function levantarReferencias(doc: Documento): Promise<Referencia[]>
             pmid: id.tipo === 'pmid' ? id.valor : undefined,
             status: resultado.status,
             tituloRetornado: resultado.titulo,
+            anoPublicacao: resultado.ano,
             ocorrenciasNoCorpo: id.ocorrencias,
         })
     }
@@ -66,7 +67,7 @@ export async function analisarReferencias(doc: Documento): Promise<Flag[]> {
                 modulo: 'referencias',
                 severidade: 'ALTA',
                 titulo: 'Identificador de referência não encontrado nas bases',
-                evidencia: `${rotulo} não foi localizado (DOI: CrossRef e DataCite; PMID: PubMed).`,
+                evidencia: `${rotulo} não foi localizado (DOI: CrossRef, DataCite e OpenAlex; PMID: PubMed e Europe PMC).`,
                 detalhe: `Citado ${ref.ocorrenciasNoCorpo}x no corpo do texto.`,
             })
         }

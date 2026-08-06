@@ -25,11 +25,21 @@ export function gerarCsv(resultados: ResultadoTriagem[]): string {
     })
 
     const cabecalho = ['arquivo', 'ALTA', 'MEDIA', 'BAIXA', 'INFO', 'total',
-        'citacoes', 'entradas_lista', 'sinalizacoes', 'erros_leitura']
+        'citacoes', 'entradas_lista', 'mediana_ano_referencias', 'sinalizacoes', 'erros_leitura']
     const linhas = [cabecalho.map(celula).join(SEPARADOR)]
 
     for (const r of ordenados) {
         const c = contar(r.flags)
+        const anos = r.referencias
+            .map((ref) => ref.anoPublicacao)
+            .filter((a): a is number => typeof a === 'number')
+            .sort((a, b) => a - b)
+        const mediana = anos.length === 0
+            ? ''
+            : anos.length % 2 === 1
+                ? anos[(anos.length - 1) / 2]
+                : Math.round((anos[anos.length / 2 - 1] + anos[anos.length / 2]) / 2)
+
         linhas.push([
             celula(r.doc.nome),
             celula(c.ALTA),
@@ -39,6 +49,7 @@ export function gerarCsv(resultados: ResultadoTriagem[]): string {
             celula(r.flags.length),
             celula(r.inventario.citacoes.length),
             celula(r.inventario.lista.encontrada ? r.inventario.lista.entradas.length : 'sem lista'),
+            celula(mediana),
             celula(r.flags.map((f) => `[${f.severidade}] ${f.titulo}`).join(' | ')),
             celula(r.doc.errosLeitura.join(' | ')),
         ].join(SEPARADOR))

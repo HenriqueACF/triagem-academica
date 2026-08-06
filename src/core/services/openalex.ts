@@ -16,9 +16,11 @@ export async function consultarDoiOpenAlex(doi: string): Promise<ResultadoConsul
 
         const json = await res.json()
         const titulo = json?.title ?? json?.display_name
+        const ano = json?.publication_year
         return {
             status: 'valida',
             titulo: typeof titulo === 'string' ? titulo : undefined,
+            ano: typeof ano === 'number' ? ano : undefined,
         }
     } catch {
         return { status: 'nao_verificada' }

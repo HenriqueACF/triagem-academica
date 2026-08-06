@@ -22,10 +22,13 @@ export async function consultarPmidEuropePmc(pmid: string): Promise<ResultadoCon
             return { status: 'nao_encontrada' }
         }
 
-        const titulo = json?.resultList?.result?.[0]?.title
+        const registro = json?.resultList?.result?.[0]
+        const titulo = registro?.title
+        const ano = Number(registro?.pubYear)
         return {
             status: 'valida',
             titulo: typeof titulo === 'string' ? titulo : undefined,
+            ano: Number.isFinite(ano) ? ano : undefined,
         }
     } catch {
         return { status: 'nao_verificada' }

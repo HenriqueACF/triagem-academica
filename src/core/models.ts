@@ -23,6 +23,7 @@ export interface Referencia {
     pmid?: string
     status: 'valida' | 'nao_encontrada' | 'divergente' | 'sem_identificador' | 'nao_verificada'
     tituloRetornado?: string
+    anoPublicacao?: number
     ocorrenciasNoCorpo: number
 }
 

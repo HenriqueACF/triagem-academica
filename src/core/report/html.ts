@@ -152,15 +152,30 @@ export function gerarRelatorioHtml(
             </div>
         </div>`).join('')
 
+    const anos = referencias
+        .map((r) => r.anoPublicacao)
+        .filter((a): a is number => typeof a === 'number')
+        .sort((a, b) => a - b)
+
+    const resumoAnos = anos.length === 0 ? '' : (() => {
+        const mediana = anos.length % 2 === 1
+            ? anos[(anos.length - 1) / 2]
+            : Math.round((anos[anos.length / 2 - 1] + anos[anos.length / 2]) / 2)
+        return `<p class="resumo-edicao">${anos.length} referência${anos.length > 1 ? 's' : ''} com ano
+            de publicação confirmado pela base: entre ${anos[0]} e ${anos[anos.length - 1]},
+            mediana ${mediana}. O que é "atual" varia por área — este dado não é uma sinalização.</p>`
+    })()
+
     const inventario = referencias.length === 0
         ? `<p class="vazio">Nenhum identificador (DOI/PMID) foi encontrado no documento.
            Isso é comum em trabalhos que seguem ABNT autor-data e não constitui indício de nada.</p>`
-        : `<div class="tabela-wrap"><table>
-        <thead><tr><th>#</th><th>Identificador</th><th>Situação</th><th>Título retornado pela base</th><th>Ocorrências</th></tr></thead>
+        : `${resumoAnos}<div class="tabela-wrap"><table>
+        <thead><tr><th>#</th><th>Identificador</th><th>Situação</th><th>Ano</th><th>Título retornado pela base</th><th>Ocorrências</th></tr></thead>
         <tbody>${referencias.map((r) => `<tr>
             <td>${r.indice}</td>
             <td>${escapar(r.doi ?? r.pmid ?? '—')}</td>
             <td>${ROTULO_STATUS[r.status]}</td>
+            <td>${r.anoPublicacao ?? '—'}</td>
             <td>${escapar(r.tituloRetornado ?? '—')}</td>
             <td>${r.ocorrenciasNoCorpo}</td>
         </tr>`).join('')}</tbody>
