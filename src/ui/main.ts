@@ -5,6 +5,7 @@ import { gerarRelatorioHtml } from '../core/report/html.ts'
 import { gerarCsv } from '../core/report/csv.ts'
 import { gerarZip } from '../core/report/zip.ts'
 import { histogramasDoLote, textoDaMetricaDoDocumento } from './histograma.ts'
+import { CONFIG } from '../core/config.ts'
 
 const ORDEM: Severidade[] = ['ALTA', 'MEDIA', 'BAIXA', 'INFO']
 const ROTULO: Record<Severidade, string> = {
@@ -67,6 +68,8 @@ Não calcula score, não conclui autoria e não detecta IA.</p>
   verificada manualmente antes de qualquer decisão acadêmica. Recomenda-se conversa com o(a)
   discente antes de qualquer procedimento formal.
 </div>
+
+<footer class="rodape">Triagem Acadêmica · v${CONFIG.versao}</footer>
 </main>`
 
 const zona = el<HTMLDivElement>('#zona')

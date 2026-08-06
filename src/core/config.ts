@@ -1,4 +1,6 @@
 export const CONFIG = {
+    versao: __APP_VERSION__,
+
     crossrefBase: 'https://api.crossref.org',
     pubmedBase: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils',
     dataciteBase: 'https://api.datacite.org',

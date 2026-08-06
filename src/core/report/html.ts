@@ -1,5 +1,6 @@
 import type { Documento, Flag, Inventario, Severidade, Referencia } from '../models.ts'
 import { faixaDeCitacoes, linhaDoTempo, textoComCitacoes } from './visuais.ts'
+import { CONFIG } from '../config.ts'
 
 const INVENTARIO_VAZIO: Inventario = {
     citacoes: [],
@@ -284,6 +285,7 @@ export function gerarRelatorioHtml(
     .detalhe { color: #777; font-size: 0.8rem; margin-top: 0.15rem; }
     .vazio { color: #666; font-style: italic; }
     .aviso { margin-top: 2rem; padding: 0.85rem 1rem; background: #f7f7f7; border-left: 4px solid #999; font-size: 0.8rem; color: #555; }
+    .rodape { margin-top: 1rem; text-align: center; font-size: 0.72rem; color: #aaa; }
    h2 { font-size: 1rem; margin-top: 2rem; margin-bottom: 0.3rem; }
     .tabela-wrap { overflow-x: auto; }
    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -351,6 +353,7 @@ export function gerarRelatorioHtml(
     ${corpoDestacado}
 
     <div class="aviso">${AVISO_LEGAL}</div>
+    <footer class="rodape">Gerado pela Triagem Acadêmica · v${CONFIG.versao}</footer>
 </body>
 </html>`
 }
