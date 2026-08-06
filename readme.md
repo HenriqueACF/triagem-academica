@@ -32,11 +32,13 @@ num relatório para que o(a) docente interprete.
 | Módulo | O que examina | Sinalizações |
 |---|---|---|
 | `metadata` | tempo de edição, revisões, datas, ciclos de edição, editor declarado | 6 |
-| `references` | DOIs e PMIDs citados, verificados em cinco bases | 2 |
+| `references` | DOIs e PMIDs citados, verificados em cinco bases, com ano de publicação | 2 |
 | `inventory` | citações autor-data e numéricas cruzadas com a lista de referências | 9 |
 | `artifacts` | caracteres invisíveis, aspas misturadas, espaçamento anômalo | 4 |
+| `fonts` | fonte minoritária no corpo do texto (indício de colagem) | 1 |
+| `language` | parágrafos em idioma diferente do predominante no documento | 1 |
 
-A lista completa das 21 regras, com limiares e severidades, está em
+A lista completa das 23 regras, com limiares e severidades, está em
 [`docs/guia-tecnico.md`](docs/guia-tecnico.md).
 
 ## Bases consultadas
@@ -57,7 +59,9 @@ servidor intermediário, o que contrariaria o princípio de não haver backend.
 
 1. A pessoa seleciona (ou arrasta) a pasta com os trabalhos. Subpastas são incluídas e
    arquivos temporários do Word (`~$…`) são ignorados.
-2. Cada arquivo é lido e analisado dentro do próprio navegador, em sequência.
+2. Cada arquivo é lido e analisado dentro do próprio navegador, em sequência. Um PDF sem
+   texto extraível (digitalizado como imagem) é sinalizado como aviso de leitura, em vez
+   de gerar um relatório silenciosamente vazio.
 3. A tela mostra a turma em uma tabela ordenada por gravidade, com contagem por severidade,
    métricas de contexto e a distribuição do lote em histogramas.
 4. Cada trabalho tem um relatório `.html` autocontido (abre com duplo clique, offline).
@@ -76,7 +80,8 @@ servidor intermediário, o que contrariaria o princípio de não haver backend.
   trecho de contexto e situação frente à lista de referências
 - Faixa mostrando onde as citações se distribuem ao longo do texto
 - Lista de referências do trabalho, marcando quais são efetivamente citadas
-- Identificadores (DOI/PMID) verificados, com o título retornado pela base
+- Identificadores (DOI/PMID) verificados, com título e **ano de publicação** retornados
+  pela base (dado descritivo — a ferramenta não julga se é "antigo demais")
 - Texto do trabalho com as citações destacadas e numeradas
 - Aviso legal obrigatório
 
@@ -130,12 +135,14 @@ Sem framework de UI (React/Vue) e sem biblioteca de gráficos — a interface é
 triagem-academica/
 ├── index.html
 ├── package.json
+├── vite.config.ts            # injeta a versão do package.json no bundle
 ├── docs/
 │   └── guia-tecnico.md       # arquitetura, regras e decisões de projeto
 └── src/
+    ├── vite-env.d.ts         # declara a constante de versão para o TypeScript
     ├── core/                 # lógica pura — NÃO acessa DOM/window
     │   ├── models.ts         # tipos centrais (Documento, Flag, Inventario...)
-    │   ├── config.ts         # limiares, URLs das bases, e-mail de contato
+    │   ├── config.ts         # limiares, URLs das bases, versão, e-mail de contato
     │   ├── batch.ts          # orquestra a análise de um lote
     │   ├── readers/          # abre .docx e .pdf → Documento normalizado
     │   ├── analyzers/        # cada análise recebe um Documento e devolve Flag[]
@@ -149,16 +156,21 @@ forma isolada e não depende do navegador.
 
 ## Estado atual
 
-Implementado e verificado manualmente: leitura de `.docx` e `.pdf`, os quatro analisadores,
+Implementado e verificado manualmente: leitura de `.docx` e `.pdf`, os seis analisadores,
 as cinco bases encadeadas com cache, processamento em lote, relatório `.html`, planilha
 `.csv`, `.zip` do lote e as visualizações.
+
+A versão exibida no rodapé e em cada relatório vem de `package.json`, injetada em build
+time por `vite.config.ts` — uma única fonte de verdade, sem número duplicado em outro lugar.
 
 Pendente:
 
 - **Testes automatizados.** O projeto ainda não tem nenhum.
 
 - **Calibração dos limiares.** Os valores em `config.ts` são provisórios; os histogramas da
-  tela de lote existem justamente para ajustá-los contra uma turma real.
+  tela de lote existem justamente para ajustá-los contra uma turma real. Os módulos `fonts`
+  e `language`, por operarem sobre texto livre, são os que mais precisam dessa calibração —
+  ainda não foram testados contra um lote real de trabalhos.
 
 ## Aviso
 

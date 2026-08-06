@@ -53,6 +53,17 @@ A regra estrutural: **`core/` nunca toca `document`, `window` ou DOM**. Só `ui/
 Por isso toda a lógica é testável sem navegador — e por isso os visuais do relatório são
 strings de SVG, não elementos criados via DOM.
 
+### Versão da ferramenta
+
+`CONFIG.versao` vem de `__APP_VERSION__`, uma constante global que `vite.config.ts` injeta
+em build time a partir do `version` do `package.json` (bloco `define`). Uma única fonte de
+verdade: subir a versão é `npm version` (ou editar o `package.json` direto), e o número
+aparece sozinho no rodapé da tela e em cada relatório `.html` gerado dali em diante — útil
+para saber, meses depois, qual versão da ferramenta produziu um relatório específico.
+`src/vite-env.d.ts` só declara o tipo (`declare const __APP_VERSION__: string`) para o
+TypeScript aceitar a variável; quem resolve o valor de fato é o Vite, não roda em `tsc`
+isoladamente.
+
 ### O fluxo do lote
 
 `batch.ts` orquestra. Duas decisões importantes ali:
@@ -118,9 +129,16 @@ significar nada. Ele vai em `PdfProducer`, que é apenas informativo.
 citação Vancouver vira um dígito solto no meio do texto, indistinguível de qualquer outro
 número — por isso esse estilo não é detectável.
 
+**PDF digitalizado (sem texto):** depois de extrair o texto de todas as páginas, o leitor
+calcula `texto.length / pdf.numPages`. Abaixo de 20 caracteres por página em média, o PDF
+provavelmente é uma imagem escaneada sem camada de texto — e isso vira um item em
+`errosLeitura`, não uma flag. A distinção importa: sem esse aviso, um PDF escaneado geraria
+um relatório com zero sinalizações, que é fácil de confundir com "documento sem problemas".
+O aviso deixa explícito que a ferramenta não teve o que examinar.
+
 ---
 
-## 5. As 21 regras
+## 5. As 23 regras
 
 ### `metadata.ts` — 6 regras
 
@@ -177,6 +195,31 @@ BAIXA** — são indícios fracos por natureza, presentes em trabalho legítimo.
 > `referenciaRecenteDias` existe em `config.ts` e **não é usado por regra nenhuma** —
 > resíduo de uma ideia não implementada.
 
+### `fonts.ts` — 1 regra
+
+Lê as fontes gravadas em cada `<w:rFonts w:ascii="...">` do `document.xml` (extraídas em
+`docx.ts`, guardadas em `metadados.fontesUsadas`) e conta ocorrências. Se uma fonte que não
+é a dominante aparece pelo menos `fontesMinOcorrencias` (5) vezes mas continua sendo menos
+de `fontesProporcaoMaxima` (5%) do total, isso vira flag BAIXA — "fontes minoritárias no
+corpo do texto", com a hipótese de texto colado de outra origem.
+
+**Risco de falso positivo:** moderado. Modelos de trabalho acadêmico usam fonte diferente em
+título, citação em bloco ou tabela de propósito — isso é legítimo e pode disparar sem
+significar nada. Não usado para `.pdf` (a extração de PDF não captura fontes).
+
+### `language.ts` — 1 regra
+
+Divide o texto em parágrafos (o mesmo split por `\n` usado no inventário de citações) e
+classifica cada um como português, inglês ou indefinido, por contagem de palavras comuns
+(stopwords) de cada idioma. Parágrafos com menos de 15 palavras são "indefinido" — não há
+sinal suficiente. Se **mais de um** parágrafo sai no idioma minoritário do documento, gera
+flag INFO — nunca mais que isso, e o `detalhe` explicita que citação direta ou termo técnico
+não traduzido é a explicação mais comum.
+
+**Risco de falso positivo:** o maior dos analisadores atuais. Termos técnicos em inglês são
+comuns em textos de medicina; o corte por parágrafo (não por frase) reduz o risco, mas o
+módulo ainda não foi validado contra um corpus real.
+
 ---
 
 ## 6. Verificação de referências (`services/`)
@@ -222,6 +265,16 @@ válida. Cada serviço tem seu próprio tratamento.
 `Map` em memória, chave `tipo:identificador` normalizado. **Só respostas conclusivas são
 guardadas** — cachear `nao_verificada` congelaria uma falha momentânea para o lote inteiro.
 Medido: 599 ms na primeira consulta, 0,017 ms na segunda.
+
+### Ano de publicação
+
+As cinco bases devolvem o ano de publicação em campos próprios (`issued.date-parts` no
+CrossRef, `pubdate` no PubMed — string tipo `"2013 Jul 26"`, exige regex pra extrair só o
+ano —, `publicationYear` na DataCite, `publication_year` no OpenAlex, `pubYear` no Europe
+PMC). Esse dado vai para `Referencia.anoPublicacao` e aparece no relatório como contexto
+puro: uma coluna na tabela de identificadores e um resumo agregado (intervalo, mediana).
+**Não vira flag.** "Antigo" depende da área — uma citação de 1975 é normal em filosofia e
+pode ser um problema numa diretriz clínica — e esse julgamento não é da ferramenta.
 
 ---
 
@@ -347,6 +400,8 @@ leitura de "risco" que o projeto recusa.
 | mudar o relatório | `core/report/html.ts` e `visuais.ts` |
 | mudar a tela | `ui/main.ts` e `ui/styles.css` |
 | suportar outro formato de arquivo | `core/readers/` + despacho em `readers/index.ts` |
+| criar um analisador novo | novo arquivo em `core/analyzers/` + registrar em `batch.ts` (import e uma linha no array `flags`) |
+| mudar a versão exibida | `package.json` (`version`) — propaga sozinho, nada mais a editar |
 
 Ao criar um analisador novo, ele precisa: seguir a assinatura `(doc) => Promise<Flag[]>`,
 não disparar quando o dado necessário estiver ausente, trazer os números na `evidencia`, e
