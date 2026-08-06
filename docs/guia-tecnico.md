@@ -247,6 +247,35 @@ CrossRef, ele daria 404 e viraria ALTA contra um aluno que fez tudo certo. Cada 
 um universo diferente, e o DOI da Nature usado nos testes **dá 404 na DataCite** — prova
 de que nenhuma delas é autoridade sobre inexistência.
 
+### SciELO e LILACS — por que ficaram de fora
+
+Investigado e descartado, não esquecido. As duas bases mais relevantes para a produção
+médica brasileira em português não entraram no encadeamento, por dois motivos distintos:
+
+- **SciELO com DOI já está coberta, sem precisar de nada.** Os periódicos SciELO registram
+  DOI no prefixo `10.1590`, no próprio CrossRef — testado com um artigo real, encontrado
+  de primeira. A base já é consultada; não há ganho em adicionar outra.
+- **A API pública da SciELO (ArticleMeta, `articlemeta.scielo.org`) só busca por código
+  interno do artigo** (ex.: `S0034-89102010000100001`), nunca por DOI — testado
+  diretamente: o parâmetro `?doi=` é ignorado em silêncio e a API devolve a listagem
+  inteira da coleção, sem filtrar nada. Como a ferramenta só extrai DOI e PMID do texto,
+  um proxy para essa API não teria identificador nenhum para consultar.
+- **LILACS (`pesquisa.bvsalud.org`) não é um caso de CORS ausente — é bloqueio de bot
+  ativo.** A resposta do servidor traz `cdn-challenge: true` e um código de erro
+  específico, sinal de um WAF que exige resolver um desafio antes de responder. Contornar
+  isso significaria construir em torno de uma proteção anti-abuso deliberada, fora do
+  escopo do projeto — diferente de simplesmente "adicionar CORS a uma API aberta".
+- A alternativa de buscar por **título/autor** (em vez de identificador) foi cogitada e
+  descartada: o mesmo teste já feito com a busca bibliográfica do CrossRef mostrou que ela
+  pode devolver, com confiança alta, um artigo **errado** para uma referência real em
+  português. Sem esse risco resolvido, adicionar mais uma base de busca por texto livre
+  aumentaria a chance de gerar evidência falsa — o oposto do que o projeto se propõe a
+  fazer.
+
+Se um servidor-ponte (proxy) viesse a ser construído no futuro para outro motivo, ele
+também exigiria abrir mão do princípio "sem backend" do projeto — uma decisão de
+arquitetura, não só de esforço técnico.
+
 ### Cada API mente de um jeito diferente
 
 | Base | Como diz "não existe" |
@@ -385,7 +414,11 @@ leitura de "risco" que o projeto recusa.
   Padrão dominante em trabalhos de graduação no Brasil.
 - **Vancouver**: estilo numérico dominante na medicina internacional.
 - **CORS**: mecanismo que permite (ou impede) um site consultar outro domínio pelo
-  navegador. É o que inviabiliza SciELO e LILACS aqui.
+  navegador. Inviabiliza a busca da SciELO (que não expõe o cabeçalho necessário), mas
+  **não** é o motivo de a LILACS ficar de fora — essa é bloqueio de bot ativo, ver §6.
+- **WAF** (*web application firewall*): camada de proteção de um servidor contra tráfego
+  automatizado. É o que bloqueia a LILACS, mesmo em chamadas servidor-a-servidor sem CORS
+  envolvido.
 
 ---
 

@@ -52,8 +52,22 @@ A lista completa das 23 regras, com limiares e severidades, está em
 | Europe PMC | biomédica ampliada (inclui preprints) | PMID |
 
 SciELO e LILACS — as bases mais relevantes para a produção médica brasileira em português —
-não expõem CORS e portanto são inalcançáveis a partir do navegador. Usá-las exigiria um
-servidor intermediário, o que contrariaria o princípio de não haver backend.
+não expõem CORS e portanto são inalcançáveis a partir do navegador.
+
+- **SciELO com DOI já está coberta**, sem precisar de nada extra: os periódicos SciELO
+  registram DOI no prefixo `10.1590`, junto ao CrossRef — que já é a primeira base do
+  encadeamento. Um artigo real da SciELO foi testado e confirmado lá.
+- **LILACS não é contornável com um servidor-ponte simples.** A API pública
+  (`pesquisa.bvsalud.org`) tem proteção ativa contra bot (desafio de CDN), não apenas
+  ausência de CORS — contornar isso significaria driblar uma proteção anti-abuso, fora do
+  escopo do projeto.
+- **A API pública da SciELO (ArticleMeta)** é tecnicamente alcançável por um servidor, mas
+  só permite busca pelo código interno do artigo (ex.: `S0034-89102010000100001`) — nunca
+  pelo DOI, que é o único identificador que a ferramenta extrai do texto. Um proxy não
+  teria o que consultar. Buscar por título/autor seria a alternativa, mas já vimos esse
+  caminho falhar: uma busca bibliográfica real no CrossRef devolveu, com confiança alta,
+  um artigo errado para uma referência em português. O risco de gerar evidência falsa é
+  maior que o ganho de cobertura, então esse caminho não foi implementado.
 
 ## Como funciona
 
