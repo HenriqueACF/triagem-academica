@@ -24,6 +24,8 @@ export const CONFIG = {
         palavrasDocGrande:2000,
 
         artefatosMinOcorrencias:5,
+        fontesMinOcorrencias:5,
+        fontesProporcaoMaxima:0.05,
         referenciaRecenteDias:90,
 
         editoresConhecidos:[

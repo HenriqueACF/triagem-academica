@@ -55,6 +55,10 @@ export async function lerDocx(nome: string, dados: ArrayBuffer): Promise<Documen
     const docXml = await lerEntrada('word/document.xml')
     const texto = docXml ? extrairTexto(docXml) : ''
 
+    if (docXml) {
+        metadados.fontesUsadas = extrairFontes(docXml)
+    }
+
     return { nome, formato: 'docx', texto, metadados, errosLeitura }
 
 }
@@ -83,4 +87,9 @@ function extrairTexto(documentXml: string): string {
         .replaceAll('&gt;', '>')
         .replaceAll('&quot;', '"')
         .replaceAll('&apos;', "'")
+}
+
+function extrairFontes(documentXml: string): string[] {
+    return [...documentXml.matchAll(/<w:rFonts\b[^>]*w:ascii="([^"]+)"/g)]
+        .map((m) => m[1])
 }
