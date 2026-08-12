@@ -210,6 +210,23 @@ export function extrairCitacoesNumericas(texto: string): CitacaoNumerica[] {
 const TITULO_SECAO =
     /^\s*(refer[êe]ncias?\b.*|bibliografia\b.*|obras citadas\b.*|references?\b.*|bibliography\b.*|works cited\b.*|literature cited\b.*)$/i
 
+// Texto do corpo, sem a seção de referências. Existe porque procurar um
+// sobrenome "em qualquer lugar do texto" incluindo a própria lista é uma
+// checagem inútil: toda entrada contém o sobrenome do seu próprio autor,
+// então a busca sempre "encontraria" o nome — dentro da entrada que
+// estava sendo verificada.
+export function corpoAntesDaLista(texto: string): string {
+    const linhas = texto.split('\n')
+    let inicio = -1
+    for (let i = linhas.length - 1; i >= 0; i--) {
+        if (TITULO_SECAO.test(linhas[i].trim())) {
+            inicio = i
+            break
+        }
+    }
+    return inicio === -1 ? texto : linhas.slice(0, inicio).join('\n')
+}
+
 export function extrairListaReferencias(texto: string): ListaReferencias {
     const linhas = texto.split('\n')
 
@@ -278,7 +295,7 @@ export async function analisarInventario(doc: Documento): Promise<Flag[]> {
     const totalOcorrencias = citacoes.reduce((s, c) => s + c.ocorrencias, 0)
     const usaNumerico = numericas.length >= MINIMO_NUMERICAS
 
-    const corpo = normalizar(doc.texto)
+    const corpo = normalizar(corpoAntesDaLista(doc.texto))
 
     if (!lista.encontrada && (citacoes.length > 0 || usaNumerico)) {
         const quanto = citacoes.length > 0
