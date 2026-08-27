@@ -42,7 +42,7 @@ export async function analisarIdioma(doc: Documento): Promise<Flag[]> {
             titulo: 'Trechos em idioma diferente do predominante',
             evidencia: `${minoritario} parágrafo(s) em ${dominante === 'pt' ? 'inglês' : 'português'} ` +
                 `dentro de um documento predominantemente em ${dominante === 'pt' ? 'português' : 'inglês'}.`,
-            detalhe: 'Comum em citação direta ou termo técnico não traduzido. Não indica, por si só, nenhum problema.',
+            detalhe: 'Módulo experimental — não validado contra um corpus real. Comum em citação direta ou termo técnico não traduzido. Não indica, por si só, nenhum problema.',
         })
     }
 

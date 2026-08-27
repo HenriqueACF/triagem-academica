@@ -30,7 +30,7 @@ export async function analisarFontes(doc: Documento): Promise<Flag[]>{
             titulo: 'Fontes minoritárias no corpo do texto',
             evidencia: `Fonte predominante: "${fonteDominante}". Outras encontradas: ` +
                 minoritarias.map(([f, n]) => `"${f}" (${n}x)`).join(', ') + '.',
-            detalhe: 'Pode indicar texto colado de outra origem, ou apenas formatação intencional (título, citação em bloco, tabela).',
+            detalhe: 'Módulo experimental — limiares ainda não calibrados contra uma turma real. Pode indicar texto colado de outra origem, ou apenas formatação intencional (título, citação em bloco, tabela).',
         })
     }
 
