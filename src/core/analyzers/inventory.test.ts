@@ -188,6 +188,68 @@ describe('extrairListaReferencias', () => {
         expect(r.entradas).toHaveLength(1)
     })
 
+    it('REGRESSÃO: referência em várias linhas é uma entrada só, com sobrenome e ano na mesma chave', () => {
+        const texto =
+            'x\nREFERÊNCIAS\n' +
+            'SILVA, J. A.; PEREIRA, M. B.; SOUZA, C. D. Efeitos do tratamento em pacientes.\n' +
+            'Revista de Medicina, São Paulo, v. 45, n. 3, p.\n' +
+            '123-130, 2020.'
+        const r = extrairListaReferencias(texto)
+        expect(r.entradas).toHaveLength(1)
+        expect(r.entradas[0].chave).toBe('silva|2020')
+        expect(r.entradas[0].textoOriginal).toContain('2020.')
+    })
+
+    it('REGRESSÃO: continuação de periódico/cidade não vira entrada nova', () => {
+        const texto =
+            'x\nREFERÊNCIAS\n' +
+            'SILVA, J. Título do artigo.\n' +
+            'Revista de Saúde, São Paulo, v. 10, n. 1, p. 5-12, 2019.\n' +
+            'PEREIRA, K. Outro estudo.\n' +
+            'Editora Universitária, Curitiba, 2020.'
+        const r = extrairListaReferencias(texto)
+        expect(r.entradas).toHaveLength(2)
+        expect(r.entradas[0].chave).toBe('silva|2019')
+        expect(r.entradas[1].chave).toBe('pereira|2020')
+    })
+
+    it('REGRESSÃO: lista numerada [n] não leva o número para a chave', () => {
+        const texto =
+            'x\nREFERÊNCIAS\n' +
+            '[1] SILVA, J. A.; PEREIRA, M. B. Efeitos do tratamento. Revista de Medicina, São Paulo, 2020.\n' +
+            '[2] PEREIRA, K.; LIMA, R. Outro estudo importante. Revista de Saúde, Rio de Janeiro, 2019.'
+        const r = extrairListaReferencias(texto)
+        expect(r.entradas).toHaveLength(2)
+        expect(r.entradas[0].chave).toBe('silva|2020')
+        expect(r.entradas[1].chave).toBe('pereira|2019')
+    })
+
+    it('REGRESSÃO: cabeçalho numerado ("5. Bibliografia") localiza a seção', () => {
+        const texto =
+            'corpo do trabalho.\n' +
+            '5. Bibliografia\n' +
+            '1. Fried LP, Tangen CM, Walston J, et al. Frailty in older adults. J Gerontol A Biol Sci Med Sci. 2001;56(3):M146-M156.\n' +
+            '2. López-Otín C, Blasco MA, Partridge L, et al. The hallmarks of aging. Cell. 2013;153(6):1194-1217.'
+        const r = extrairListaReferencias(texto)
+        expect(r.encontrada).toBe(true)
+        expect(r.entradas[0].chave).toBe('fried|2001')
+        expect(r.entradas[1].chave).toBe('lopez-otin|2013')
+    })
+
+    it('REGRESSÃO: lista Vancouver numerada com várias linhas por entrada', () => {
+        const texto =
+            'corpo do trabalho.\n' +
+            'REFERÊNCIAS\n' +
+            '1. Fried LP, Tangen CM, Walston J, et al. Frailty in older adults: evidence for a\n' +
+            'phenotype. J Gerontol A Biol Sci Med Sci. 2001;56(3):M146-M156.\n' +
+            '2. López-Otín C, Blasco MA, Partridge L, et al. The hallmarks of aging.\n' +
+            'Cell. 2013;153(6):1194-1217.'
+        const r = extrairListaReferencias(texto)
+        expect(r.entradas).toHaveLength(2)
+        expect(r.entradas[0].chave).toBe('fried|2001')
+        expect(r.entradas[1].chave).toBe('lopez-otin|2013')
+    })
+
     it('procura de trás para frente: "referências" na prosa não confunde o início da lista', () => {
         const texto =
             'O trabalho tem boas referências bibliográficas ao longo do texto.\n' +
@@ -341,5 +403,42 @@ describe('analisarInventario — regras completas', () => {
             'SILVA, J. Uma entrada de verdade, bem longa o suficiente. Revista, 2020.'
         const flags = await analisarInventario(doc(texto, { modified: '2026-06-01T10:00:00Z' }))
         expect(flags).toEqual([])
+    })
+
+    it('REGRESSÃO: citações do 1º autor casam com referências em várias linhas (falso positivo da regra 6)', async () => {
+        // Cenário real relatado: citação "(SILVA et al., 2020)" e a referência
+        // completa existe na lista, mas quebrada em várias linhas.
+        const texto =
+            'O tratamento é eficaz (SILVA et al., 2020) e também (PEREIRA et al., 2019).\n' +
+            'REFERÊNCIAS\n' +
+            'SILVA, J. A.; PEREIRA, M. B.; SOUZA, C. D. Efeitos do tratamento em pacientes.\n' +
+            'Revista de Medicina, São Paulo, v. 45, n. 3, p.\n' +
+            '123-130, 2020.\n' +
+            'PEREIRA, K.; LIMA, R. Outro estudo importante.\n' +
+            'Revista de Saúde, Rio de Janeiro, v. 10, n. 1, p. 5-12, 2019.'
+        const flags = await analisarInventario(doc(texto, { modified: '2026-06-01T10:00:00Z' }))
+        expect(flags.find((x) => x.titulo === 'Citações que não constam na lista de referências')).toBeUndefined()
+        expect(flags.find((x) => x.titulo === 'Referências listadas que não aparecem no corpo')).toBeUndefined()
+    })
+
+    it('REGRESSÃO: lista numerada [n] não gera falso positivo da regra 6', async () => {
+        const texto =
+            'O tratamento é eficaz (SILVA et al., 2020).\n' +
+            'REFERÊNCIAS\n' +
+            '[1] SILVA, J. A.; PEREIRA, M. B. Efeitos do tratamento em pacientes. Revista de Medicina, São Paulo, 2020.'
+        const flags = await analisarInventario(doc(texto, { modified: '2026-06-01T10:00:00Z' }))
+        expect(flags.find((x) => x.titulo === 'Citações que não constam na lista de referências')).toBeUndefined()
+    })
+
+    it('REGRESSÃO: citações autor-data casam com lista numerada Vancouver (doc real de doutorado)', async () => {
+        const texto =
+            'O envelhecimento é um desafio (Fried et al., 2001) e também (Horvath & Raj, 2018).\n' +
+            '5. Bibliografia\n' +
+            '1. Fried LP, Tangen CM, Walston J, et al. Frailty in older adults: evidence for a phenotype. J Gerontol A Biol Sci Med Sci. 2001;56(3):M146-M156.\n' +
+            '2. López-Otín C, Blasco MA, Partridge L, et al. The hallmarks of aging. Cell. 2013;153(6):1194-1217.\n' +
+            '3. Horvath S, Raj K. DNA methylation-based biomarkers and the epigenetic clock theory of ageing. Nat Rev Genet. 2018;19(6):371-384.'
+        const flags = await analisarInventario(doc(texto, { modified: '2026-06-01T10:00:00Z' }))
+        expect(flags.find((x) => x.titulo === 'Citações que não constam na lista de referências')).toBeUndefined()
+        expect(flags.find((x) => x.titulo === 'Citações no corpo sem lista de referências')).toBeUndefined()
     })
 })

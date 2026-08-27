@@ -207,46 +207,70 @@ export function extrairCitacoesNumericas(texto: string): CitacaoNumerica[] {
         .sort((a, b) => a.numero - b.numero)
 }
 
-const TITULO_SECAO =
-    /^\s*(refer[êe]ncias?\b.*|bibliografia\b.*|obras citadas\b.*|references?\b.*|bibliography\b.*|works cited\b.*|literature cited\b.*)$/i
+const PALAVRA_SECAO =
+    /(?<=(?:^|\n|\d{1,3}[\.\)]\s*))(?:refer[êe]ncias?|bibliografia|obras citadas|references?|bibliography|works cited|literature cited)(?=[\s\n]*(\d{1,3}[\.\)\]]?\s*)?[A-ZÀ-Ú])/gi
 
-// Texto do corpo, sem a seção de referências. Existe porque procurar um
-// sobrenome "em qualquer lugar do texto" incluindo a própria lista é uma
-// checagem inútil: toda entrada contém o sobrenome do seu próprio autor,
-// então a busca sempre "encontraria" o nome — dentro da entrada que
-// estava sendo verificada.
+function posicaoSecao(texto: string): number {
+    let pos = -1
+    for (const m of texto.matchAll(PALAVRA_SECAO)) {
+        pos = m.index! + m[0].length
+    }
+    return pos
+}
+
+const PADRAO_NOVA_ENTRADA =
+    /^[A-ZÀ-Ú][A-Za-zÀ-ú'’`-]+(?:, [A-ZÀ-Ú][A-Za-zÀ-ú'’`-]*(?: [A-ZÀ-Ú][A-Za-zÀ-ú'’`-]*)*|; |\. [A-ZÀ-Ú][a-zà-ú]+(?!\.))/
+
+const PADRAO_INICIO_ENTRADA_NUMERADA = /\b(\d{1,3})[\.\)\]]\s+(?=[A-ZÀ-Ú])/g
+
 export function corpoAntesDaLista(texto: string): string {
-    const linhas = texto.split('\n')
-    let inicio = -1
-    for (let i = linhas.length - 1; i >= 0; i--) {
-        if (TITULO_SECAO.test(linhas[i].trim())) {
-            inicio = i
-            break
+    const pos = posicaoSecao(texto)
+    return pos === -1 ? texto : texto.slice(0, pos)
+}
+
+function dividirListaAutoral(linhas: string[]): string[] {
+    const blocos: string[] = []
+    let atual = ''
+    for (const linha of linhas) {
+        const limpa = linha.trim().replace(/^\[\d{1,3}\]\s*/, '')
+        if (limpa === '') continue
+        if (PADRAO_NOVA_ENTRADA.test(limpa)) {
+            if (atual !== '') blocos.push(atual)
+            atual = limpa
+        } else {
+            atual = atual === '' ? limpa : `${atual} ${limpa}`
         }
     }
-    return inicio === -1 ? texto : linhas.slice(0, inicio).join('\n')
+    if (atual !== '') blocos.push(atual)
+    return blocos
+}
+
+function dividirListaNumerada(secao: string): string[] {
+    const matches = [...secao.matchAll(PADRAO_INICIO_ENTRADA_NUMERADA)]
+    const blocos: string[] = []
+    for (let i = 0; i < matches.length; i++) {
+        const m = matches[i]
+        const fim = i + 1 < matches.length ? matches[i + 1].index! : secao.length
+        blocos.push(secao.slice(m.index! + m[0].length, fim).trim())
+    }
+    return blocos
 }
 
 export function extrairListaReferencias(texto: string): ListaReferencias {
-    const linhas = texto.split('\n')
+    const pos = posicaoSecao(texto)
+    if (pos === -1) return { encontrada: false, entradas: [] }
 
-    let inicio = -1
-    for (let i = linhas.length - 1; i >= 0; i--) {
-        if (TITULO_SECAO.test(linhas[i].trim())) {
-            inicio = i
-            break
-        }
-    }
+    const restante = texto.slice(pos)
+    const numerada = /^(?:\[\d{1,3}\]|\d{1,3}[\.\)])\s*[A-ZÀ-Ú]/.test(restante.trim())
 
-    if (inicio === -1) {
-        return { encontrada: false, entradas: [] }
-    }
+    const entradasBrutas = numerada
+        ? dividirListaNumerada(restante)
+        : dividirListaAutoral(restante.split('\n'))
 
     const entradas: ReferenciaListada[] = []
     let indice = 0
 
-    for (const linha of linhas.slice(inicio + 1)) {
-        const entrada = linha.trim()
+    for (const entrada of entradasBrutas) {
         if (entrada.length < 25) continue
 
         const sobrenome = primeiroSobrenome(entrada)

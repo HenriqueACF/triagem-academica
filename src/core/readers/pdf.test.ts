@@ -57,6 +57,30 @@ describe('lerPdf', () => {
         expect(doc.metadados.Pages).toBe('2')
     })
 
+    it('REGRESSÃO: fragmentos de texto grudados ganham espaço (senão nomes/citações quebram)', async () => {
+        // No PDF real, parte dos espaços é só posição visual e some dos itens;
+        // unir com '' gerava "systemicdepletion" e "Ferrucci& Fabbri".
+        vi.mocked((await import('pdfjs-dist')).getDocument).mockReturnValue({
+            promise: Promise.resolve({
+                numPages: 1,
+                getMetadata: async () => ({ info: {} }),
+                getPage: async () => ({
+                    getTextContent: async () => ({
+                        items: [
+                            { str: 'systemic' }, { str: 'depletion' },
+                            { str: ' ' }, { str: 'et' }, { str: 'al.' },
+                            { str: 'Ferrucci' }, { str: '&' }, { str: ' Fabbri' },
+                            { str: 'Ferreira-' }, { str: 'Fernandes' },
+                        ],
+                    }),
+                }),
+            }),
+        } as never)
+        const { lerPdf } = await import('./pdf.ts')
+        const doc = await lerPdf('t.pdf', new ArrayBuffer(0))
+        expect(doc.texto).toBe('systemic depletion et al. Ferrucci & Fabbri Ferreira-Fernandes')
+    })
+
     it('converte data no formato PDF (D:20260126110800) para ISO', async () => {
         await montarMock(fakePdf({
             numPages: 1,

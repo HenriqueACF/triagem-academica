@@ -41,9 +41,25 @@ export async function lerPdf(nome: string, dados: ArrayBuffer): Promise<Document
         try {
             const pagina = await pdf.getPage(n)
             const conteudo = await pagina.getTextContent()
-            const linha = conteudo.items
-                .map((item) => ('str' in item ? item.str : ''))
-                .join('')
+            let linha = ''
+            for (const item of conteudo.items) {
+                const s = 'str' in item ? item.str : ''
+                if (s === '') continue
+                if (
+                    linha !== '' &&
+                    !/\s$/.test(linha) &&
+                    !/^\s/.test(s) &&
+                    !linha.endsWith('-') &&
+                    !s.startsWith('-')
+                ) {
+                    linha += ' '
+                }
+                linha += s
+            }
+            linha = linha
+                .replace(/[ \t]{2,}/g, ' ')
+                .replace(/\b(10\.\d{4,9}\/)\s+(?=\S)/g, '$1')
+                .trim()
             paginas.push(linha)
         } catch {
             errosLeitura.push(`Falha ao extrair texto da página ${n}.`)
