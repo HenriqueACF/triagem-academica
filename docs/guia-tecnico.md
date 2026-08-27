@@ -118,7 +118,11 @@ inclusive no meio de uma palavra, quando muda a formatação. Portanto:
 
 ### `.pdf` — pdfjs-dist
 
-Texto extraído página a página; cada página vira uma linha. Datas em PDF vêm no formato
+Texto extraído página a página; cada página vira uma linha. Os itens de texto do pdfjs
+são fragmentos posicionados — parte dos espaços vira item, parte é só posição visual e se
+perde. O leitor insere um espaço entre fragmentos (sem quebrar hífens de sobrenomes como
+`Ferreira-Fernandes`) e colapsa duplicados; sem isso, palavras sairiam coladas
+("systemicdepletion") e quebrariam sobrenomes e citações. Datas em PDF vêm no formato
 `D:20260126110800+00'00'` e são convertidas para ISO.
 
 Decisão conservadora: o produtor do PDF **não** é gravado em `metadados.Application`. Um PDF
@@ -327,6 +331,18 @@ Citação e entrada da lista precisam gerar a mesma chave para casarem:
 
 `Loubet et al., 2020` → `loubet|2020`
 `LOUBET, P.; RANFAING, J. Alternative... 2020.` → `loubet|2020`
+
+### A lista pode estar numerada ou quebrada em linhas
+
+A seção de referências é localizada pela palavra-chave (`Referências`, `Bibliografia`,
+`References`…), mesmo quando o cabeçalho vem numerado ("5. Bibliografia") ou colado ao
+número da página em PDF. Duas situações de formatação são absorvidas sem virar falso
+positivo:
+
+- **Entrada em várias linhas** (Enter manual, texto colado): as linhas são reconstruídas
+  numa entrada só, e a continuação (periódico, cidade, páginas) não é lida como entrada nova.
+- **Lista numerada** (`1. Sobrenome, ...`, `[1] ...`, Vancouver): o número na frente é
+  descartado da chave, então `(Fried et al., 2001)` casa com `1. Fried LP, ... 2001`.
 
 ### O problema do ponto e vírgula
 
